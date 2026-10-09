@@ -1,4 +1,4 @@
--- Nymius Rivals v2.1 - AimbotModule
+-- Nymius Rivals v2.1 - AimbotModule (ULTRA SMOOTH & HUMAN-LIKE)
 local shared = getgenv().NymiusShared
 if not shared then
 	warn("❌ NymiusShared not found")
@@ -20,7 +20,9 @@ local hasHookmetamethod = shared.hasHookmetamethod
 local hasDrawing = shared.hasDrawing
 local hasMouseMoveRel = shared.hasMouseMoveRel
 
--- === SILENT AIM ===
+-- ==========================================
+-- SILENT AIM (Без изменений)
+-- ==========================================
 local silentHookActive = false
 local oldNamecall = nil
 
@@ -90,7 +92,9 @@ ui.SilentFOVInput.FocusLost:Connect(function()
 	if v and v > 0 then states.silentFOV = v end
 end)
 
--- === LEGITBOT ===
+-- ==========================================
+-- LEGITBOT (Без изменений)
+-- ==========================================
 local function findLegitTarget()
 	local myChar = LocalPlayer.Character
 	if not myChar or not myChar:FindFirstChild("Head") then return nil end
@@ -199,7 +203,9 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- === MOUSE AIMBOT (ОБНОВЛЕННЫЙ) ===
+-- ==========================================
+-- MOUSE AIMBOT (ULTRA SMOOTH & HUMAN-LIKE)
+-- ==========================================
 shared.mouseAimHolding = false
 
 local function findMouseAimTarget()
@@ -211,22 +217,13 @@ local function findMouseAimTarget()
 	
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character then
-			-- HEAD CHANCE ЛОГИКА
+			-- HEAD CHANCE LOGIC
 			local roll = math.random(1, 100)
 			local targetPartName = (roll <= states.mouseAimHeadChance) and "Head" or "HumanoidRootPart"
 			local tp = p.Character:FindFirstChild(targetPartName) or p.Character:FindFirstChild("Head")
 			
 			if tp then
-				-- LEGITMENT (РАЗБРОС) ЛОГИКА
-				local maxOffset = (states.mouseAimLegitment / 100) * 2
-				local scatter = Vector3.new(
-					math.random() * maxOffset * 2 - maxOffset,
-					math.random() * maxOffset * 2 - maxOffset,
-					math.random() * maxOffset * 2 - maxOffset
-				)
-				local targetPos = tp.Position + scatter
-				
-				local sp, os = Camera:WorldToViewportPoint(targetPos)
+				local sp, os = Camera:WorldToViewportPoint(tp.Position)
 				if os then
 					local d = (Vector2.new(sp.X, sp.Y) - screenCenter).Magnitude
 					if d < closestDist then
@@ -234,14 +231,14 @@ local function findMouseAimTarget()
 							local rp = RaycastParams.new()
 							rp.FilterDescendantsInstances = {myChar}
 							rp.FilterType = Enum.RaycastFilterType.Blacklist
-							local r = workspace:Raycast(myHead.Position, (targetPos - myHead.Position), rp)
+							local r = workspace:Raycast(myHead.Position, (tp.Position - myHead.Position), rp)
 							if r and r.Instance and r.Instance:IsDescendantOf(p.Character) then 
 								closestDist = d 
-								closest = {part = tp, pos = targetPos} 
+								closest = {part = tp, pos = tp.Position} 
 							end
 						else
 							closestDist = d 
-							closest = {part = tp, pos = targetPos}
+							closest = {part = tp, pos = tp.Position}
 						end
 					end
 				end
@@ -273,7 +270,6 @@ ui.MouseAimModeBtn.MouseButton1Click:Connect(function()
 	ui.MouseAimModeBtn.Text = "Mode: "..(states.mouseAimMode == "always" and "Always" or "Hold")
 end)
 
--- НОВЫЕ ОБРАБОТЧИКИ ДЛЯ HEAD CHANCE И LEGITMENT
 ui.MouseAimHeadChanceInput.FocusLost:Connect(function()
 	local v = tonumber(ui.MouseAimHeadChanceInput.Text)
 	if v and v >= 0 and v <= 100 then states.mouseAimHeadChance = v end
@@ -294,26 +290,71 @@ ui.MouseAimSmoothInput.FocusLost:Connect(function()
 	if v and v >= 0 then states.mouseAimSmoothness = v end
 end)
 
+-- ГЛАВНЫЙ ЦИКЛ АИМБОТА (ОПТИМИЗИРОВАННЫЙ)
 RunService.RenderStepped:Connect(function()
 	if not states.mouseAimEnabled then return end
 	if not hasMouseMoveRel then return end
+	
 	local sa = states.mouseAimMode == "always" or (states.mouseAimMode == "hold" and shared.mouseAimHolding)
-	if sa then
-		local t = findMouseAimTarget()
-		if t then
-			local sp, os = Camera:WorldToViewportPoint(t.pos) -- Используем позицию с разбросом
-			if os then
-				local sc = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-				local d = Vector2.new(sp.X, sp.Y) - sc
-				local sm = math.clamp(states.mouseAimSmoothness, 0, 1)
-				if sm > 0 then d = d * (1 - sm * 0.8) end
-				pcall(function() mousemoverel(d.X, d.Y) end)
-			end
+	if not sa then return end
+	
+	local t = findMouseAimTarget()
+	if t then
+		local sp, os = Camera:WorldToViewportPoint(t.pos)
+		if not os then return end
+		
+		local sc = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+		local rawDelta = Vector2.new(sp.X, sp.Y) - sc
+		local distance = rawDelta.Magnitude
+		
+		-- 1. ДИНАМИЧЕСКОЕ СГЛАЖИВАНИЕ (Человекоподобное)
+		-- Когда цель далеко, аимбот движется быстрее. Когда близко - замедляется для точности.
+		local smoothness = math.clamp(states.mouseAimSmoothness, 0, 1)
+		local moveFactor = 1
+		
+		if smoothness > 0 then
+			local baseSmooth = 1 - (smoothness * 0.85)
+			-- Ускорение при большом расстоянии (Fitts's Law)
+			local distEasing = math.clamp(distance / 400, 0.15, 1) 
+			moveFactor = baseSmooth * distEasing
 		end
+		
+		local smoothedDelta = rawDelta * moveFactor
+		
+		-- 2. LEGITMENT (РАЗБРОС)
+		-- Применяем случайное смещение к 2D-движению мыши, а не к 3D-позиции (убирает дрожание)
+		local legitment = math.clamp(states.mouseAimLegitment, 0, 100)
+		if legitment > 0 then
+			-- Максимальный разброс в пикселях (100% = ~15-20 пикселей)
+			local maxPixelScatter = (legitment / 100) * 18
+			local scatterX = math.random() * maxPixelScatter * 2 - maxPixelScatter
+			local scatterY = math.random() * maxPixelScatter * 2 - maxPixelScatter
+			smoothedDelta = smoothedDelta + Vector2.new(scatterX, scatterY)
+		end
+		
+		-- 3. МЕРТВАЯ ЗОНА (Deadzone)
+		-- Если мы уже практически на цели, не двигаем мышь, чтобы избежать микро-подергиваний
+		if smoothedDelta.Magnitude < 2.5 then
+			return
+		end
+		
+		-- 4. ОГРАНИЧЕНИЕ МАКСИМАЛЬНОЙ СКОРОСТИ (Speed Clamp)
+		-- Запрещаем мыши "телепортироваться" на другой конец экрана за 1 кадр
+		local maxSpeed = 40 -- Можно уменьшить до 25-30 для еще большей плавности
+		if smoothedDelta.Magnitude > maxSpeed then
+			smoothedDelta = smoothedDelta.Unit * maxSpeed
+		end
+		
+		-- 5. ВЫПОЛНЕНИЕ ДВИЖЕНИЯ
+		pcall(function()
+			mousemoverel(smoothedDelta.X, smoothedDelta.Y)
+		end)
 	end
 end)
 
--- === RAGE BOT ===
+-- ==========================================
+-- RAGE BOT (Без изменений)
+-- ==========================================
 local safePositionCFrame = nil
 local isAtSafePosition = false
 
@@ -462,7 +503,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	end
 end)
 
--- === FOV CIRCLES ===
+-- ==========================================
+-- FOV CIRCLES
+-- ==========================================
 local silentFOVCircle, legitFOVCircle, mouseAimFOVCircle = nil, nil, nil
 
 if hasDrawing then
@@ -503,7 +546,9 @@ RunService.RenderStepped:Connect(function()
 	if mouseAimFOVCircle then pcall(function() mouseAimFOVCircle.Position = center mouseAimFOVCircle.Radius = states.mouseAimFOV mouseAimFOVCircle.Visible = states.mouseAimShowFOV end) end
 end)
 
--- === РЕГИСТРАЦИЯ КЕЙБИНДОВ ===
+-- ==========================================
+-- РЕГИСТРАЦИЯ КЕЙБИНДОВ
+-- ==========================================
 shared.keybindActions.silent = toggleSilent
 shared.keybindActions.legit = toggleLegit
 shared.keybindActions.mouseAim = toggleMouseAim
@@ -525,7 +570,9 @@ shared.keybindActions.mouseAimMode = function()
 	ui.MouseAimModeBtn.Text = "Mode: "..(states.mouseAimMode == "always" and "Always" or "Hold")
 end
 
--- === UI UPDATE ===
+-- ==========================================
+-- UI UPDATE
+-- ==========================================
 function updateAllUIFromStates()
 	ui.SilentToggleBtn.Text = "Toggle: "..(states.silentEnabled and "ON" or "OFF")
 	ui.SilentToggleBtn.BackgroundColor3 = states.silentEnabled and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
@@ -574,4 +621,4 @@ function updateAllKeybindButtons()
 	ui.RageKeybindBtn.Text = keybinds.rage or "Key"
 end
 
-print("✅ AimbotModule v2.1 loaded!")
+print("✅ AimbotModule v2.1 (Smooth) loaded!")
