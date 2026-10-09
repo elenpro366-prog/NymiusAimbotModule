@@ -9,7 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- === ЗАГРУЗКА МОДУЛЯ АИМБОТОВ С GITHUB ===
-local AIMBOT_MODULE_URL = "https://raw.githubusercontent.com/elenpro366-prog/AimbotModule/refs/heads/main/AimbotModule.lua"
+local AIMBOT_MODULE_URL = "https://raw.githubusercontent.com/elenpro366-prog/NymiusAimbotModule/refs/heads/main/AimbotModule.Lua"
 
 local function loadAimbotModule()
 	local success, code = pcall(function()
