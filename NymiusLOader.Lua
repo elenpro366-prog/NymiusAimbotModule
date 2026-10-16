@@ -1,5 +1,4 @@
-
--- Nymius Rivals v2.1 - Main Loader
+-- Nymius Rivals v2.2 - Main Loader
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -8,22 +7,17 @@ local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- === ЗАГРУЗКА МОДУЛЯ АИМБОТОВ С GITHUB ===
-local AIMBOT_MODULE_URL = "https://raw.githubusercontent.com/elenpro366-prog/NymiusAimbotModule/refs/heads/main/AimbotModule.Lua"
+-- === ЗАГРУЗКА МОДУЛЯ АИМБОТОВ ===
+local AIMBOT_MODULE_URL = "https://raw.githubusercontent.com/elenpro366-prog/AimbotModule/refs/heads/main/AimbotModule.lua"
 
 local function loadAimbotModule()
 	local success, code = pcall(function()
 		return game:HttpGet(AIMBOT_MODULE_URL, true)
 	end)
-	
 	if success and code then
 		local func, err = loadstring(code)
-		if func then
-			func()
-			return true
-		else
-			warn("❌ AimbotModule load error: " .. tostring(err))
-		end
+		if func then func() return true
+		else warn(" AimbotModule load error: " .. tostring(err)) end
 	else
 		warn("⚠️ Failed to fetch AimbotModule: " .. tostring(code))
 	end
@@ -55,9 +49,11 @@ local colors = {
 	fovMouseAim = Color3.fromRGB(150, 255, 50)
 }
 
--- === СОСТОЯНИЯ (ОБНОВЛЕНО) ===
+-- === СОСТОЯНИЯ ===
 local states = {
 	espEnabled = false,
+	espShowNames = false,
+	espShowHP = false,
 	silentEnabled = false, silentShowFOV = false, silentFOV = 150,
 	flyEnabled = false, flySpeed = 1,
 	walkSpeedEnabled = false, walkSpeedValue = 1,
@@ -67,8 +63,8 @@ local states = {
 	legitTargetLockEnabled = false, legitTargetLockName = "",
 	mouseAimEnabled = false, mouseAimShowFOV = false, mouseAimWallCheck = false,
 	mouseAimMode = "always", mouseAimFOV = 200, mouseAimSmoothness = 0.3,
-	mouseAimHeadChance = 50,  -- 0-100% шанс выстрела в голову
-	mouseAimLegitment = 0,    -- 0-100 разброс (до 2 stud'ов)
+	mouseAimHeadChance = 50,
+	mouseAimLegitment = 0,
 	rageEnabled = false, rageTargets = {"", "", "", "", ""},
 	arcadeRageEnabled = false,
 	staffDetectorEnabled = false,
@@ -86,14 +82,14 @@ local keybinds = {
 	silent = nil, fly = nil, noclip = nil,
 	legit = nil, legitMode = nil, legitHold = "Mouse2", legitTargetLock = nil,
 	mouseAim = nil, mouseAimMode = nil, mouseAimHold = "Mouse2",
-	rage = nil,
+	rage = nil, rageRecall = nil,
 	repaintWalls = nil, repaintFloors = nil,
 	transparencyWalls = nil, transparencyFloors = nil
 }
 
 local themes = {Classic = {transparency = 0}, Aero = {transparency = 0.25}}
 
--- === ОБЩИЙ КОНТЕКСТ ДЛЯ МОДУЛЕЙ ===
+-- === ОБЩИЙ КОНТЕКСТ ===
 getgenv().NymiusShared = {
 	Players = Players, UserInputService = UserInputService, RunService = RunService,
 	HttpService = HttpService, LocalPlayer = LocalPlayer, Camera = Camera,
@@ -135,7 +131,7 @@ local function base64Decode(data)
 	end))
 end
 
--- === АВТОЗАГРУЗКА КОНФИГА ИЗ ПЕРЕМЕННОЙ ===
+-- === АВТОЗАГРУЗКА КОНФИГА ===
 local initialConfig = _G.Config or (getgenv and getgenv().Config) or Config
 if initialConfig and type(initialConfig) == "string" and initialConfig ~= "" then
 	pcall(function()
@@ -154,7 +150,7 @@ if initialConfig and type(initialConfig) == "string" and initialConfig ~= "" the
 	end)
 end
 
--- === КОНФИГИ ФУНКЦИИ ===
+-- === КОНФИГИ ===
 local function getConfigData()
 	return {
 		keybinds = keybinds, states = states,
@@ -168,7 +164,7 @@ local function getConfigData()
 			fovLegit = {colors.fovLegit.R*255, colors.fovLegit.G*255, colors.fovLegit.B*255},
 			fovMouseAim = {colors.fovMouseAim.R*255, colors.fovMouseAim.G*255, colors.fovMouseAim.B*255}
 		},
-		version = "2.1"
+		version = "2.2"
 	}
 end
 
@@ -223,7 +219,7 @@ MainStroke.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 45)
 Title.BackgroundColor3 = colors.titleBg
-Title.Text = "Nymius Rivals v2.1"
+Title.Text = "Nymius Rivals v2.2"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
@@ -318,7 +314,7 @@ MiddleColumn.Size = UDim2.new(0, 378, 1, 0)
 MiddleColumn.Position = UDim2.new(0, 381, 0, 0)
 MiddleColumn.BackgroundTransparency = 1
 MiddleColumn.ScrollBarThickness = 4
-MiddleColumn.CanvasSize = UDim2.new(0, 0, 0, 2400) -- Увеличено для новых полей
+MiddleColumn.CanvasSize = UDim2.new(0, 0, 0, 2400)
 MiddleColumn.ZIndex = 11
 MiddleColumn.Parent = ColumnsContainer
 
@@ -472,8 +468,9 @@ createDivider(LeftColumn, 455)
 createSectionLabel("RageBot", LeftColumn, 465)
 local RageToggleBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 495), UDim2.new(0.4, 0, 0, 35), "Toggle: OFF")
 local RageKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 495), UDim2.new(0.2, 0, 0, 35), keybinds.rage or "Key")
-local ArcadeRageBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 495), UDim2.new(0.23, 0, 0, 35), "Arcade: OFF")
-local RageKillBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 535), UDim2.new(0.9, 0, 0, 35), "Kill", Color3.fromRGB(231, 76, 60))
+local RageRecallKeybindBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 495), UDim2.new(0.23, 0, 0, 35), keybinds.rageRecall or "Key")
+local ArcadeRageBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 535), UDim2.new(0.4, 0, 0, 35), "Arcade: OFF")
+local RageKillBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 535), UDim2.new(0.45, 0, 0, 35), "Kill", Color3.fromRGB(231, 76, 60))
 
 for i = 1, 5 do
 	local targetInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 575 + (i-1)*40), UDim2.new(0.9, 0, 0, 35), "Target "..i.." name...", states.rageTargets[i] or "")
@@ -484,16 +481,18 @@ end
 createSectionLabel("World", MiddleColumn, 10)
 local ESPBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 40), UDim2.new(0.18, 0, 0, 30), "OFF")
 local ESPKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 40), UDim2.new(0.15, 0, 0, 30), keybinds.esp or "Key")
-local NoclipBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 75), UDim2.new(0.18, 0, 0, 30), "OFF")
-local NoclipKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 75), UDim2.new(0.15, 0, 0, 30), keybinds.noclip or "Key")
-local StaffDetectorBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 110), UDim2.new(0.35, 0, 0, 30), "OFF")
+local ESPNamesBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 75), UDim2.new(0.18, 0, 0, 30), "Names: OFF")
+local ESPHPBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 75), UDim2.new(0.15, 0, 0, 30), "HP: OFF")
+local NoclipBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 110), UDim2.new(0.18, 0, 0, 30), "OFF")
+local NoclipKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 110), UDim2.new(0.15, 0, 0, 30), keybinds.noclip or "Key")
+local StaffDetectorBtn = createButton(MiddleColumn, UDim2.new(0.45, 0, 0, 145), UDim2.new(0.35, 0, 0, 30), "OFF")
 
-createDivider(MiddleColumn, 155)
-createSectionLabel("World Visuals", MiddleColumn, 165)
+createDivider(MiddleColumn, 190)
+createSectionLabel("World Visuals", MiddleColumn, 200)
 
 local RepaintWallsColorPreview = Instance.new("Frame")
 RepaintWallsColorPreview.Size = UDim2.new(0.08, 0, 0, 25)
-RepaintWallsColorPreview.Position = UDim2.new(0.55, 0, 0, 195)
+RepaintWallsColorPreview.Position = UDim2.new(0.55, 0, 0, 230)
 RepaintWallsColorPreview.BackgroundColor3 = states.repaintWallsColor
 RepaintWallsColorPreview.ZIndex = 11
 RepaintWallsColorPreview.Parent = MiddleColumn
@@ -501,12 +500,12 @@ local rwcCorner = Instance.new("UICorner")
 rwcCorner.CornerRadius = UDim.new(0, 4)
 rwcCorner.Parent = RepaintWallsColorPreview
 
-local RepaintWallsBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 195), UDim2.new(0.3, 0, 0, 25), "Repaint Walls")
-local RepaintWallsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 222), UDim2.new(0.3, 0, 0, 20), keybinds.repaintWalls or "Key")
+local RepaintWallsBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 230), UDim2.new(0.3, 0, 0, 25), "Repaint Walls")
+local RepaintWallsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 257), UDim2.new(0.3, 0, 0, 20), keybinds.repaintWalls or "Key")
 
 local RepaintFloorsColorPreview = Instance.new("Frame")
 RepaintFloorsColorPreview.Size = UDim2.new(0.08, 0, 0, 25)
-RepaintFloorsColorPreview.Position = UDim2.new(0.55, 0, 0, 247)
+RepaintFloorsColorPreview.Position = UDim2.new(0.55, 0, 0, 282)
 RepaintFloorsColorPreview.BackgroundColor3 = states.repaintFloorsColor
 RepaintFloorsColorPreview.ZIndex = 11
 RepaintFloorsColorPreview.Parent = MiddleColumn
@@ -514,56 +513,55 @@ local rfcCorner = Instance.new("UICorner")
 rfcCorner.CornerRadius = UDim.new(0, 4)
 rfcCorner.Parent = RepaintFloorsColorPreview
 
-local RepaintFloorsBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 247), UDim2.new(0.3, 0, 0, 25), "Repaint Floors")
-local RepaintFloorsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 274), UDim2.new(0.3, 0, 0, 20), keybinds.repaintFloors or "Key")
+local RepaintFloorsBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 282), UDim2.new(0.3, 0, 0, 25), "Repaint Floors")
+local RepaintFloorsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.65, 0, 0, 309), UDim2.new(0.3, 0, 0, 20), keybinds.repaintFloors or "Key")
 
-local TranspWallsInput = createTextBox(MiddleColumn, UDim2.new(0.55, 0, 0, 300), UDim2.new(0.2, 0, 0, 25), "0.0 - 1.0", tostring(states.transparencyWalls))
-local TranspWallsBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 300), UDim2.new(0.18, 0, 0, 25), "Apply")
-local TranspWallsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 327), UDim2.new(0.18, 0, 0, 20), keybinds.transparencyWalls or "Key")
+local TranspWallsInput = createTextBox(MiddleColumn, UDim2.new(0.55, 0, 0, 335), UDim2.new(0.2, 0, 0, 25), "0.0 - 1.0", tostring(states.transparencyWalls))
+local TranspWallsBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 335), UDim2.new(0.18, 0, 0, 25), "Apply")
+local TranspWallsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 362), UDim2.new(0.18, 0, 0, 20), keybinds.transparencyWalls or "Key")
 
-local TranspFloorsInput = createTextBox(MiddleColumn, UDim2.new(0.55, 0, 0, 352), UDim2.new(0.2, 0, 0, 25), "0.0 - 1.0", tostring(states.transparencyFloors))
-local TranspFloorsBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 352), UDim2.new(0.18, 0, 0, 25), "Apply")
-local TranspFloorsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 379), UDim2.new(0.18, 0, 0, 20), keybinds.transparencyFloors or "Key")
+local TranspFloorsInput = createTextBox(MiddleColumn, UDim2.new(0.55, 0, 0, 387), UDim2.new(0.2, 0, 0, 25), "0.0 - 1.0", tostring(states.transparencyFloors))
+local TranspFloorsBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 387), UDim2.new(0.18, 0, 0, 25), "Apply")
+local TranspFloorsKeybindBtn = createButton(MiddleColumn, UDim2.new(0.77, 0, 0, 414), UDim2.new(0.18, 0, 0, 20), keybinds.transparencyFloors or "Key")
 
-local ResetVisualsBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 405), UDim2.new(0.9, 0, 0, 30), "Reset All Visuals", Color3.fromRGB(231, 76, 60))
+local ResetVisualsBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 440), UDim2.new(0.9, 0, 0, 30), "Reset All Visuals", Color3.fromRGB(231, 76, 60))
 
-createDivider(MiddleColumn, 450)
-createSectionLabel("Additional UI", MiddleColumn, 460)
-local KeybindsBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 490), UDim2.new(0.2, 0, 0, 35), "Keybinds")
-local ProfileBtn = createButton(MiddleColumn, UDim2.new(0.27, 0, 0, 490), UDim2.new(0.2, 0, 0, 35), "Profile")
-local NotesBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 490), UDim2.new(0.2, 0, 0, 35), "Notes")
-local ConsoleWindowBtn = createButton(MiddleColumn, UDim2.new(0.71, 0, 0, 490), UDim2.new(0.24, 0, 0, 35), "Console")
+createDivider(MiddleColumn, 485)
+createSectionLabel("Additional UI", MiddleColumn, 495)
+local KeybindsBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 525), UDim2.new(0.2, 0, 0, 35), "Keybinds")
+local ProfileBtn = createButton(MiddleColumn, UDim2.new(0.27, 0, 0, 525), UDim2.new(0.2, 0, 0, 35), "Profile")
+local NotesBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 525), UDim2.new(0.2, 0, 0, 35), "Notes")
+local ConsoleWindowBtn = createButton(MiddleColumn, UDim2.new(0.71, 0, 0, 525), UDim2.new(0.24, 0, 0, 35), "Console")
 
-createDivider(MiddleColumn, 540)
-createSectionLabel("LegitBot", MiddleColumn, 550)
-local LegitToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 580), UDim2.new(0.3, 0, 0, 35), "Legit AimBot: OFF")
-local LegitKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 580), UDim2.new(0.15, 0, 0, 35), keybinds.legit or "Key")
-local LegitShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 580), UDim2.new(0.2, 0, 0, 35), "Show FOV: OFF")
-local LegitWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 580), UDim2.new(0.19, 0, 0, 35), "Wall: OFF")
-local LegitModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 620), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
-local LegitModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 620), UDim2.new(0.15, 0, 0, 35), keybinds.legitMode or "Key")
-local LegitHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 620), UDim2.new(0.15, 0, 0, 35), keybinds.legitHold or "Mouse2")
-local LegitTargetLockBtn = createButton(MiddleColumn, UDim2.new(0.66, 0, 0, 620), UDim2.new(0.15, 0, 0, 35), "Lock: OFF")
-local LegitTargetLockKeybindBtn = createButton(MiddleColumn, UDim2.new(0.83, 0, 0, 620), UDim2.new(0.12, 0, 0, 35), keybinds.legitTargetLock or "Key")
-local LegitTargetInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 660), UDim2.new(0.9, 0, 0, 30), "Target Lock name", states.legitTargetLockName)
-local LegitFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 695), UDim2.new(0.45, 0, 0, 35), "Legit FOV (200)", tostring(states.legitFOV))
-local LegitSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 695), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.legitSmoothness))
+createDivider(MiddleColumn, 575)
+createSectionLabel("LegitBot", MiddleColumn, 585)
+local LegitToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 615), UDim2.new(0.3, 0, 0, 35), "Legit AimBot: OFF")
+local LegitKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 615), UDim2.new(0.15, 0, 0, 35), keybinds.legit or "Key")
+local LegitShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 615), UDim2.new(0.2, 0, 0, 35), "Show FOV: OFF")
+local LegitWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 615), UDim2.new(0.19, 0, 0, 35), "Wall: OFF")
+local LegitModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 655), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
+local LegitModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 655), UDim2.new(0.15, 0, 0, 35), keybinds.legitMode or "Key")
+local LegitHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 655), UDim2.new(0.15, 0, 0, 35), keybinds.legitHold or "Mouse2")
+local LegitTargetLockBtn = createButton(MiddleColumn, UDim2.new(0.66, 0, 0, 655), UDim2.new(0.15, 0, 0, 35), "Lock: OFF")
+local LegitTargetLockKeybindBtn = createButton(MiddleColumn, UDim2.new(0.83, 0, 0, 655), UDim2.new(0.12, 0, 0, 35), keybinds.legitTargetLock or "Key")
+local LegitTargetInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 695), UDim2.new(0.9, 0, 0, 30), "Target Lock name", states.legitTargetLockName)
+local LegitFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 730), UDim2.new(0.45, 0, 0, 35), "Legit FOV (200)", tostring(states.legitFOV))
+local LegitSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 730), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.legitSmoothness))
 
-createDivider(MiddleColumn, 745)
-createSectionLabel("Mouse Aimbot", MiddleColumn, 755)
-local MouseAimToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 785), UDim2.new(0.3, 0, 0, 35), "Toggle: OFF")
-local MouseAimKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 785), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAim or "Key")
-local MouseAimWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 785), UDim2.new(0.2, 0, 0, 35), "Wall: OFF")
-local MouseAimShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 785), UDim2.new(0.19, 0, 0, 35), "Show FOV: OFF")
-local MouseAimModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 825), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
-local MouseAimModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 825), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimMode or "Key")
-local MouseAimHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 825), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimHold or "Mouse2")
+createDivider(MiddleColumn, 780)
+createSectionLabel("Mouse Aimbot", MiddleColumn, 790)
+local MouseAimToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 820), UDim2.new(0.3, 0, 0, 35), "Toggle: OFF")
+local MouseAimKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 820), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAim or "Key")
+local MouseAimWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 820), UDim2.new(0.2, 0, 0, 35), "Wall: OFF")
+local MouseAimShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 820), UDim2.new(0.19, 0, 0, 35), "Show FOV: OFF")
+local MouseAimModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 860), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
+local MouseAimModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 860), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimMode or "Key")
+local MouseAimHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 860), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimHold or "Mouse2")
 
--- НОВЫЕ ПОЛЯ ДЛЯ MOUSE AIMBOT
-local MouseAimHeadChanceInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 865), UDim2.new(0.45, 0, 0, 35), "Head Chance % (0-100)", tostring(states.mouseAimHeadChance))
-local MouseAimLegitmentInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 865), UDim2.new(0.43, 0, 0, 35), "Legitment (0-100)", tostring(states.mouseAimLegitment))
-local MouseAimFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 905), UDim2.new(0.45, 0, 0, 35), "MouseAim FOV (200)", tostring(states.mouseAimFOV))
-local MouseAimSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 905), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.mouseAimSmoothness))
+local MouseAimHeadChanceInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 900), UDim2.new(0.45, 0, 0, 35), "Head Chance % (0-100)", tostring(states.mouseAimHeadChance))
+local MouseAimLegitmentInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 900), UDim2.new(0.43, 0, 0, 35), "Legitment (0-100)", tostring(states.mouseAimLegitment))
+local MouseAimFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 940), UDim2.new(0.45, 0, 0, 35), "MouseAim FOV (200)", tostring(states.mouseAimFOV))
+local MouseAimSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 940), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.mouseAimSmoothness))
 
 -- === RIGHT COLUMN ===
 createSectionLabel("Information", RightColumn, 10)
@@ -576,7 +574,7 @@ InfoContent.Font = Enum.Font.Gotham
 InfoContent.TextSize = 13
 InfoContent.TextXAlignment = Enum.TextXAlignment.Left
 InfoContent.TextYAlignment = Enum.TextYAlignment.Top
-InfoContent.Text = "Welcome "..LocalPlayer.DisplayName.."!\nAlso Known As "..LocalPlayer.Name..".\n\nVersion: v2.1\nPublished by Zalore Hub."
+InfoContent.Text = "Welcome "..LocalPlayer.DisplayName.."!\nAlso Known As "..LocalPlayer.Name..".\n\nVersion: v2.2\nPublished by Zalore Hub."
 InfoContent.ZIndex = 11
 InfoContent.Parent = RightColumn
 
@@ -608,7 +606,7 @@ ConsoleWindowBtn.MouseButton1Click:Connect(function()
 	ConsoleWindowBtn.BackgroundColor3 = ConsoleWindow.Visible and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
 end)
 
--- Сохраняем UI элементы аимботов в shared для модуля
+-- Сохраняем UI элементы
 shared.ui = {
 	SilentToggleBtn = SilentToggleBtn, SilentKeybindBtn = SilentKeybindBtn, SilentShowFOVBtn = SilentShowFOVBtn, SilentFOVInput = SilentFOVInput,
 	LegitToggleBtn = LegitToggleBtn, LegitKeybindBtn = LegitKeybindBtn, LegitShowFOVBtn = LegitShowFOVBtn, LegitWallCheckBtn = LegitWallCheckBtn,
@@ -619,7 +617,9 @@ shared.ui = {
 	MouseAimShowFOVBtn = MouseAimShowFOVBtn, MouseAimModeBtn = MouseAimModeBtn, MouseAimModeKeybindBtn = MouseAimModeKeybindBtn,
 	MouseAimHoldKeybindBtn = MouseAimHoldKeybindBtn, MouseAimHeadChanceInput = MouseAimHeadChanceInput, MouseAimLegitmentInput = MouseAimLegitmentInput,
 	MouseAimFOVInput = MouseAimFOVInput, MouseAimSmoothInput = MouseAimSmoothInput,
-	RageToggleBtn = RageToggleBtn, RageKeybindBtn = RageKeybindBtn, ArcadeRageBtn = ArcadeRageBtn, RageKillBtn = RageKillBtn
+	RageToggleBtn = RageToggleBtn, RageKeybindBtn = RageKeybindBtn, RageRecallKeybindBtn = RageRecallKeybindBtn,
+	ArcadeRageBtn = ArcadeRageBtn, RageKillBtn = RageKillBtn,
+	ESPBtn = ESPBtn, ESPNamesBtn = ESPNamesBtn, ESPHPBtn = ESPHPBtn
 }
 
 -- === ТЕЛЕПОРТАЦИЯ ===
@@ -633,7 +633,6 @@ local function teleportBehindTarget(targetPlayer)
 		if not myChar then error("No character") end
 		local myRoot = myChar:WaitForChild("HumanoidRootPart", 5)
 		if not myRoot then error("No root") end
-		
 		myRoot.CFrame = tRoot.CFrame
 		Camera.CFrame = tRoot.CFrame
 	end)
@@ -664,11 +663,97 @@ local function performArcadeTeleport()
 	teleportBehindTarget(t)
 end
 
--- === ESP ===
+-- === ESP (ОБНОВЛЕННЫЙ) ===
 local espHighlights = {}
+local espBillboards = {}
+
+local function createESPBillboard(player)
+	if espBillboards[player] then return end
+	
+	local character = player.Character
+	if not character then return end
+	local head = character:FindFirstChild("Head")
+	if not head then return end
+	
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "NymiusESP"
+	billboard.Size = UDim2.new(0, 200, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = head
+	
+	-- Ник игрока
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "NameLabel"
+	nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = player.DisplayName
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 14
+	nameLabel.TextStrokeTransparency = 0.5
+	nameLabel.ZIndex = 100
+	nameLabel.Parent = billboard
+	
+	-- HP бар
+	local hpLabel = Instance.new("TextLabel")
+	hpLabel.Name = "HPLabel"
+	hpLabel.Size = UDim2.new(1, 0, 0.5, 0)
+	hpLabel.Position = UDim2.new(0, 0, 0.5, 0)
+	hpLabel.BackgroundTransparency = 1
+	hpLabel.Text = "HP: 150/150"
+	hpLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+	hpLabel.Font = Enum.Font.GothamBold
+	hpLabel.TextSize = 12
+	hpLabel.TextStrokeTransparency = 0.5
+	hpLabel.ZIndex = 100
+	hpLabel.Parent = billboard
+	
+	espBillboards[player] = {
+		billboard = billboard,
+		nameLabel = nameLabel,
+		hpLabel = hpLabel
+	}
+end
+
+local function updateESPBillboards()
+	for player, data in pairs(espBillboards) do
+		if player.Character then
+			local humanoid = player.Character:FindFirstChild("Humanoid")
+			if humanoid and data.hpLabel then
+				local currentHP = math.floor(humanoid.Health)
+				local maxHP = 150
+				data.hpLabel.Text = "HP: " .. currentHP .. "/" .. maxHP
+				
+				-- Цвет HP в зависимости от здоровья
+				local hpPercent = currentHP / maxHP
+				if hpPercent > 0.6 then
+					data.hpLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+				elseif hpPercent > 0.3 then
+					data.hpLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+				else
+					data.hpLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+				end
+				
+				-- Показывать/скрывать элементы
+				if data.nameLabel then
+					data.nameLabel.Visible = states.espShowNames
+				end
+				if data.hpLabel then
+					data.hpLabel.Visible = states.espShowHP
+				end
+				
+				-- Скрывать billboard если оба выключены
+				data.billboard.Enabled = states.espShowNames or states.espShowHP
+			end
+		end
+	end
+end
+
 local function addESP(p)
 	if p == LocalPlayer or not p.Character then return end
 	if espHighlights[p] then espHighlights[p]:Destroy() end
+	
 	local h = Instance.new("Highlight")
 	h.Adornee = p.Character
 	h.FillColor = Color3.fromRGB(255, 0, 0)
@@ -677,10 +762,16 @@ local function addESP(p)
 	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	h.Parent = p.Character
 	espHighlights[p] = h
+	
+	createESPBillboard(p)
 end
 
 local function remESP(p)
 	if espHighlights[p] then espHighlights[p]:Destroy() espHighlights[p] = nil end
+	if espBillboards[p] then
+		if espBillboards[p].billboard then espBillboards[p].billboard:Destroy() end
+		espBillboards[p] = nil
+	end
 end
 
 local function toggleESP()
@@ -697,10 +788,42 @@ local function toggleESP()
 end
 
 ESPBtn.MouseButton1Click:Connect(toggleESP)
+
+local function toggleESPNames()
+	states.espShowNames = not states.espShowNames
+	ESPNamesBtn.Text = "Names: "..(states.espShowNames and "ON" or "OFF")
+	ESPNamesBtn.BackgroundColor3 = states.espShowNames and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
+	log("📛 ESP Names "..(states.espShowNames and "enabled" or "disabled"), states.espShowNames and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60))
+end
+
+ESPNamesBtn.MouseButton1Click:Connect(toggleESPNames)
+
+local function toggleESPHP()
+	states.espShowHP = not states.espShowHP
+	ESPHPBtn.Text = "HP: "..(states.espShowHP and "ON" or "OFF")
+	ESPHPBtn.BackgroundColor3 = states.espShowHP and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
+	log("❤️ ESP HP "..(states.espShowHP and "enabled" or "disabled"), states.espShowHP and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60))
+end
+
+ESPHPBtn.MouseButton1Click:Connect(toggleESPHP)
+
 Players.PlayerAdded:Connect(function(p)
-	if states.espEnabled then p.CharacterAdded:Connect(function() task.wait(1) addESP(p) end) end
+	if states.espEnabled then
+		p.CharacterAdded:Connect(function()
+			task.wait(1)
+			addESP(p)
+		end)
+	end
 end)
+
 Players.PlayerRemoving:Connect(remESP)
+
+-- Обновление ESP каждый кадр
+RunService.RenderStepped:Connect(function()
+	if states.espEnabled then
+		updateESPBillboards()
+	end
+end)
 
 -- === NOCLIP ===
 local function toggleNoclip()
@@ -884,7 +1007,7 @@ local function setTransparency(filterFunc, transparency)
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("BasePart") and filterFunc(obj) then table.insert(parts, obj) end
 	end
-	log("🔍 Found "..#parts.." parts", Color3.fromRGB(52, 152, 219))
+	log(" Found "..#parts.." parts", Color3.fromRGB(52, 152, 219))
 	task.spawn(function()
 		local count = 0
 		for _, part in ipairs(parts) do
@@ -1141,6 +1264,7 @@ local function updateKeybindsDisplay()
 	text = text.."Fly - "..(keybinds.fly or "no key").."\n"
 	text = text.."Noclip - "..(keybinds.noclip or "no key").."\n"
 	text = text.."RageBot - "..(keybinds.rage or "no key").."\n"
+	text = text.."Rage Recall - "..(keybinds.rageRecall or "no key").."\n"
 	text = text.."Legit AimBot - "..(keybinds.legit or "no key").."\n"
 	text = text.."Legit Mode - "..(keybinds.legitMode or "no key").."\n"
 	text = text.."Legit Hold - "..(keybinds.legitHold or "Mouse2").."\n"
@@ -1198,8 +1322,8 @@ end
 local keybindButtonsMap = {
 	direct = DirectKeybindBtn, arcade = ArcadeKeybindBtn, esp = ESPKeybindBtn,
 	toggle = ToggleKeyBtn, silent = SilentKeybindBtn, fly = FlyKeybindBtn,
-	noclip = NoclipKeybindBtn, rage = RageKeybindBtn, legit = LegitKeybindBtn,
-	legitMode = LegitModeKeybindBtn, legitHold = LegitHoldKeybindBtn,
+	noclip = NoclipKeybindBtn, rage = RageKeybindBtn, rageRecall = RageRecallKeybindBtn,
+	legit = LegitKeybindBtn, legitMode = LegitModeKeybindBtn, legitHold = LegitHoldKeybindBtn,
 	legitTargetLock = LegitTargetLockKeybindBtn, mouseAim = MouseAimKeybindBtn,
 	mouseAimMode = MouseAimModeKeybindBtn, mouseAimHold = MouseAimHoldKeybindBtn,
 	repaintWalls = RepaintWallsKeybindBtn, repaintFloors = RepaintFloorsKeybindBtn,
@@ -1268,17 +1392,21 @@ ArcadeRageBtn.MouseButton1Click:Connect(function()
 	log("🎲 Arcade Rage "..(states.arcadeRageEnabled and "enabled" or "disabled"), states.arcadeRageEnabled and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60))
 end)
 
--- === ЗАГРУЗКА МОДУЛЯ АИМБОТОВ ===
+-- === ЗАГРУЗКА МОДУЛЯ ===
 if loadAimbotModule() then
 	log("✅ AimbotModule loaded from GitHub", Color3.fromRGB(46, 204, 113))
 else
 	log("⚠️ AimbotModule failed to load", Color3.fromRGB(241, 196, 15))
 end
 
--- === UI UPDATE FUNCTIONS ===
+-- === UI UPDATE ===
 function updateAllUIFromStates()
 	ESPBtn.Text = states.espEnabled and "ON" or "OFF"
 	ESPBtn.BackgroundColor3 = states.espEnabled and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
+	ESPNamesBtn.Text = "Names: "..(states.espShowNames and "ON" or "OFF")
+	ESPNamesBtn.BackgroundColor3 = states.espShowNames and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
+	ESPHPBtn.Text = "HP: "..(states.espShowHP and "ON" or "OFF")
+	ESPHPBtn.BackgroundColor3 = states.espShowHP and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
 	FlyBtn.Text = "Fly: "..(states.flyEnabled and "ON" or "OFF")
 	FlyBtn.BackgroundColor3 = states.flyEnabled and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
 	WalkSpeedChangerBtn.Text = "WalkSpeed: "..(states.walkSpeedEnabled and "ON" or "OFF")
@@ -1303,11 +1431,12 @@ function updateAllKeybindButtons()
 	NoclipKeybindBtn.Text = keybinds.noclip or "Key"
 	LegitHoldKeybindBtn.Text = keybinds.legitHold or "Mouse2"
 	MouseAimHoldKeybindBtn.Text = keybinds.mouseAimHold or "Mouse2"
+	RageRecallKeybindBtn.Text = keybinds.rageRecall or "Key"
 end
 
 -- === СТАРТ ===
-log("🚀 Nymius Rivals v2.1 loaded!", Color3.fromRGB(46, 204, 113))
+log("🚀 Nymius Rivals v2.2 loaded!", Color3.fromRGB(46, 204, 113))
 log("💡 Welcome "..LocalPlayer.DisplayName.."!", Color3.fromRGB(180, 180, 180))
 log("💡 Toggle: "..keybinds.toggle, Color3.fromRGB(180, 180, 180))
 log("💡 Published by Zalore Hub", Color3.fromRGB(180, 180, 180))
-print("✅ Nymius Rivals v2.1 loaded!")
+print("✅ Nymius Rivals v2.2 loaded!")
