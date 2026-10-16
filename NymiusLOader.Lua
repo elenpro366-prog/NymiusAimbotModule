@@ -1,9 +1,8 @@
--- Nymius Rivals v2.3 - Main Loader
+-- Nymius Rivals v2.4 - Main Loader
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -18,9 +17,9 @@ local function loadAimbotModule()
 	if success and code then
 		local func, err = loadstring(code)
 		if func then func() return true
-		else warn("️ AimbotModule load error: " .. tostring(err)) end
+		else warn("⚠️ AimbotModule load error: " .. tostring(err)) end
 	else
-		warn("️ Failed to fetch AimbotModule: " .. tostring(code))
+		warn("⚠️ Failed to fetch AimbotModule: " .. tostring(code))
 	end
 	return false
 end
@@ -164,7 +163,7 @@ local function getConfigData()
 			fovLegit = {colors.fovLegit.R*255, colors.fovLegit.G*255, colors.fovLegit.B*255},
 			fovMouseAim = {colors.fovMouseAim.R*255, colors.fovMouseAim.G*255, colors.fovMouseAim.B*255}
 		},
-		version = "2.3"
+		version = "2.4"
 	}
 end
 
@@ -218,7 +217,7 @@ MainStroke.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 45)
 Title.BackgroundColor3 = colors.titleBg
-Title.Text = "Nymius Rivals v2.3"
+Title.Text = "Nymius Rivals v2.4"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 22
@@ -304,7 +303,7 @@ local LeftColumn = Instance.new("ScrollingFrame")
 LeftColumn.Size = UDim2.new(0, 378, 1, 0)
 LeftColumn.BackgroundTransparency = 1
 LeftColumn.ScrollBarThickness = 4
-LeftColumn.CanvasSize = UDim2.new(0, 0, 0, 1600)
+LeftColumn.CanvasSize = UDim2.new(0, 0, 0, 2200)
 LeftColumn.ZIndex = 11
 LeftColumn.Parent = ColumnsContainer
 
@@ -313,7 +312,7 @@ MiddleColumn.Size = UDim2.new(0, 378, 1, 0)
 MiddleColumn.Position = UDim2.new(0, 381, 0, 0)
 MiddleColumn.BackgroundTransparency = 1
 MiddleColumn.ScrollBarThickness = 4
-MiddleColumn.CanvasSize = UDim2.new(0, 0, 0, 1800)
+MiddleColumn.CanvasSize = UDim2.new(0, 0, 0, 2200)
 MiddleColumn.ZIndex = 11
 MiddleColumn.Parent = ColumnsContainer
 
@@ -437,13 +436,12 @@ local function log(message, color)
 end
 shared.log = log
 
--- === ФУНКЦИЯ СОЗДАНИЯ ЭЛЕМЕНТА СПИСКА ИГРОКОВ ===
-local function createPlayerListItem(parent, player, yPos, isRageMode)
+-- === ФУНКЦИЯ СОЗДАНИЯ ЭЛЕМЕНТА СПИСКА ИГРОКОВ (для UIListLayout) ===
+local function createPlayerListItem(parent, player, isRageMode)
 	local itemHeight = 50
 	
 	local itemFrame = Instance.new("Frame")
-	itemFrame.Size = UDim2.new(0.9, 0, 0, itemHeight)
-	itemFrame.Position = UDim2.new(0.05, 0, 0, yPos)
+	itemFrame.Size = UDim2.new(1, 0, 0, itemHeight)
 	itemFrame.BackgroundColor3 = colors.sectionBg
 	itemFrame.ZIndex = 11
 	itemFrame.Parent = parent
@@ -514,7 +512,6 @@ local function createPlayerListItem(parent, player, yPos, isRageMode)
 	-- Кнопка действия
 	local actionBtn
 	if isRageMode then
-		-- Проверяем, есть ли игрок уже в списке таргетов
 		local isInList = false
 		for i = 1, 5 do
 			if string.lower(states.rageTargets[i]) == string.lower(player.Name) then
@@ -538,7 +535,6 @@ local function createPlayerListItem(parent, player, yPos, isRageMode)
 		btnCorner.Parent = actionBtn
 		
 		actionBtn.MouseButton1Click:Connect(function()
-			-- Добавляем или удаляем из списка
 			local found = false
 			for i = 1, 5 do
 				if string.lower(states.rageTargets[i]) == string.lower(player.Name) then
@@ -546,13 +542,12 @@ local function createPlayerListItem(parent, player, yPos, isRageMode)
 					found = true
 					actionBtn.Text = "Add"
 					actionBtn.BackgroundColor3 = colors.buttonGreen
-					log(" Removed " .. player.Name .. " from rage targets", Color3.fromRGB(231, 76, 60))
+					log("🗑️ Removed " .. player.Name .. " from rage targets", Color3.fromRGB(231, 76, 60))
 					break
 				end
 			end
 			
 			if not found then
-				-- Ищем свободный слот
 				for i = 1, 5 do
 					if states.rageTargets[i] == "" then
 						states.rageTargets[i] = player.Name
@@ -563,17 +558,8 @@ local function createPlayerListItem(parent, player, yPos, isRageMode)
 					end
 				end
 			end
-			
-			-- Обновляем текстбоксы в основной панели
-			for i = 1, 5 do
-				local targetInput = LeftColumn:FindFirstChild("RageTarget"..i)
-				if targetInput then
-					targetInput.Text = states.rageTargets[i] or ""
-				end
-			end
 		end)
 	else
-		-- Direct TP mode - кнопка TP
 		actionBtn = Instance.new("TextButton")
 		actionBtn.Size = UDim2.new(0, 50, 0, 30)
 		actionBtn.Position = UDim2.new(1, -55, 0.5, -15)
@@ -606,235 +592,79 @@ local function createPlayerListItem(parent, player, yPos, isRageMode)
 		end)
 	end
 	
-	return itemFrame, itemHeight
+	return itemFrame
 end
-
--- === ОКНО СЕЛЕКТОРА ИГРОКОВ ДЛЯ DIRECT TP ===
-local TPSelectorWindow = Instance.new("Frame")
-TPSelectorWindow.Size = UDim2.new(0, 320, 0, 400)
-TPSelectorWindow.Position = UDim2.new(0.5, -160, 0.5, -200)
-TPSelectorWindow.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-TPSelectorWindow.Active = true
-TPSelectorWindow.Draggable = true
-TPSelectorWindow.Visible = false
-TPSelectorWindow.ZIndex = 20
-TPSelectorWindow.Parent = ScreenGui
-
-local TPSelectorCorner = Instance.new("UICorner")
-TPSelectorCorner.CornerRadius = UDim.new(0, 8)
-TPSelectorCorner.Parent = TPSelectorWindow
-
-local TPSelectorStroke = Instance.new("UIStroke")
-TPSelectorStroke.Color = colors.stroke
-TPSelectorStroke.Thickness = 2
-TPSelectorStroke.Parent = TPSelectorWindow
-
-local TPSelectorTitleBar = Instance.new("Frame")
-TPSelectorTitleBar.Size = UDim2.new(1, 0, 0, 30)
-TPSelectorTitleBar.BackgroundColor3 = colors.titleBg
-TPSelectorTitleBar.ZIndex = 21
-TPSelectorTitleBar.Parent = TPSelectorWindow
-
-local TPSelectorTitle = Instance.new("TextLabel")
-TPSelectorTitle.Size = UDim2.new(1, -30, 1, 0)
-TPSelectorTitle.Position = UDim2.new(0, 10, 0, 0)
-TPSelectorTitle.BackgroundTransparency = 1
-TPSelectorTitle.Text = "🎯 Direct TP - Select Player"
-TPSelectorTitle.TextColor3 = Color3.new(1, 1, 1)
-TPSelectorTitle.Font = Enum.Font.GothamBold
-TPSelectorTitle.TextSize = 12
-TPSelectorTitle.TextXAlignment = Enum.TextXAlignment.Left
-TPSelectorTitle.ZIndex = 21
-TPSelectorTitle.Parent = TPSelectorTitleBar
-
-local TPSelectorCloseBtn = Instance.new("TextButton")
-TPSelectorCloseBtn.Size = UDim2.new(0, 20, 0, 20)
-TPSelectorCloseBtn.Position = UDim2.new(1, -22, 0, 5)
-TPSelectorCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
-TPSelectorCloseBtn.Text = "X"
-TPSelectorCloseBtn.TextColor3 = Color3.new(1, 1, 1)
-TPSelectorCloseBtn.Font = Enum.Font.GothamBold
-TPSelectorCloseBtn.TextSize = 10
-TPSelectorCloseBtn.ZIndex = 21
-TPSelectorCloseBtn.Parent = TPSelectorTitleBar
-
-local TPSelectorScroll = Instance.new("ScrollingFrame")
-TPSelectorScroll.Size = UDim2.new(0.95, 0, 1, -35)
-TPSelectorScroll.Position = UDim2.new(0.025, 0, 0, 35)
-TPSelectorScroll.BackgroundTransparency = 1
-TPSelectorScroll.ScrollBarThickness = 4
-TPSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-TPSelectorScroll.ZIndex = 21
-TPSelectorScroll.Parent = TPSelectorWindow
-
-local TPSelectorLayout = Instance.new("UIListLayout")
-TPSelectorLayout.Padding = UDim.new(0, 4)
-TPSelectorLayout.Parent = TPSelectorScroll
-
-local function refreshTPSelector()
-	-- Очищаем список
-	for _, child in ipairs(TPSelectorScroll:GetChildren()) do
-		if child:IsA("Frame") then child:Destroy() end
-	end
-	
-	local yPos = 0
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local item, height = createPlayerListItem(TPSelectorScroll, player, yPos, false)
-			yPos = yPos + height + 4
-		end
-	end
-	
-	TPSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, yPos)
-end
-
-TPSelectorCloseBtn.MouseButton1Click:Connect(function()
-	TPSelectorWindow.Visible = false
-end)
-
--- === ОКНО СЕЛЕКТОРА ИГРОКОВ ДЛЯ RAGEBOT ===
-local RageSelectorWindow = Instance.new("Frame")
-RageSelectorWindow.Size = UDim2.new(0, 320, 0, 400)
-RageSelectorWindow.Position = UDim2.new(0.5, 200, 0.5, -200)
-RageSelectorWindow.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-RageSelectorWindow.Active = true
-RageSelectorWindow.Draggable = true
-RageSelectorWindow.Visible = false
-RageSelectorWindow.ZIndex = 20
-RageSelectorWindow.Parent = ScreenGui
-
-local RageSelectorCorner = Instance.new("UICorner")
-RageSelectorCorner.CornerRadius = UDim.new(0, 8)
-RageSelectorCorner.Parent = RageSelectorWindow
-
-local RageSelectorStroke = Instance.new("UIStroke")
-RageSelectorStroke.Color = colors.stroke
-RageSelectorStroke.Thickness = 2
-RageSelectorStroke.Parent = RageSelectorWindow
-
-local RageSelectorTitleBar = Instance.new("Frame")
-RageSelectorTitleBar.Size = UDim2.new(1, 0, 0, 30)
-RageSelectorTitleBar.BackgroundColor3 = colors.titleBg
-RageSelectorTitleBar.ZIndex = 21
-RageSelectorTitleBar.Parent = RageSelectorWindow
-
-local RageSelectorTitle = Instance.new("TextLabel")
-RageSelectorTitle.Size = UDim2.new(1, -30, 1, 0)
-RageSelectorTitle.Position = UDim2.new(0, 10, 0, 0)
-RageSelectorTitle.BackgroundTransparency = 1
-RageSelectorTitle.Text = "️ RageBot - Select Targets"
-RageSelectorTitle.TextColor3 = Color3.new(1, 1, 1)
-RageSelectorTitle.Font = Enum.Font.GothamBold
-RageSelectorTitle.TextSize = 12
-RageSelectorTitle.TextXAlignment = Enum.TextXAlignment.Left
-RageSelectorTitle.ZIndex = 21
-RageSelectorTitle.Parent = RageSelectorTitleBar
-
-local RageSelectorCloseBtn = Instance.new("TextButton")
-RageSelectorCloseBtn.Size = UDim2.new(0, 20, 0, 20)
-RageSelectorCloseBtn.Position = UDim2.new(1, -22, 0, 5)
-RageSelectorCloseBtn.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
-RageSelectorCloseBtn.Text = "X"
-RageSelectorCloseBtn.TextColor3 = Color3.new(1, 1, 1)
-RageSelectorCloseBtn.Font = Enum.Font.GothamBold
-RageSelectorCloseBtn.TextSize = 10
-RageSelectorCloseBtn.ZIndex = 21
-RageSelectorCloseBtn.Parent = RageSelectorTitleBar
-
-local RageSelectorScroll = Instance.new("ScrollingFrame")
-RageSelectorScroll.Size = UDim2.new(0.95, 0, 1, -35)
-RageSelectorScroll.Position = UDim2.new(0.025, 0, 0, 35)
-RageSelectorScroll.BackgroundTransparency = 1
-RageSelectorScroll.ScrollBarThickness = 4
-RageSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-RageSelectorScroll.ZIndex = 21
-RageSelectorScroll.Parent = RageSelectorWindow
-
-local RageSelectorLayout = Instance.new("UIListLayout")
-RageSelectorLayout.Padding = UDim.new(0, 4)
-RageSelectorLayout.Parent = RageSelectorScroll
-
--- Кнопки Update и Clear All для RageSelector
-local RageUpdateBtn = createButton(RageSelectorWindow, UDim2.new(0.05, 0, 1, -30), UDim2.new(0.45, 0, 0, 25), "🔄 Update", colors.buttonBlue)
-local RageClearBtn = createButton(RageSelectorWindow, UDim2.new(0.5, 0, 1, -30), UDim2.new(0.45, 0, 0, 25), "🗑️ Clear All", colors.buttonRed)
-
-RageUpdateBtn.MouseButton1Click:Connect(function()
-	refreshRageSelector()
-	log("🔄 Rage selector updated", Color3.fromRGB(52, 152, 219))
-end)
-
-RageClearBtn.MouseButton1Click:Connect(function()
-	for i = 1, 5 do
-		states.rageTargets[i] = ""
-		local targetInput = LeftColumn:FindFirstChild("RageTarget"..i)
-		if targetInput then targetInput.Text = "" end
-	end
-	refreshRageSelector()
-	log("🗑️ All rage targets cleared", Color3.fromRGB(231, 76, 60))
-end)
-
-local function refreshRageSelector()
-	-- Очищаем список
-	for _, child in ipairs(RageSelectorScroll:GetChildren()) do
-		if child:IsA("Frame") then child:Destroy() end
-	end
-	
-	local yPos = 0
-	for _, player in ipairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character then
-			local item, height = createPlayerListItem(RageSelectorScroll, player, yPos, true)
-			yPos = yPos + height + 4
-		end
-	end
-	
-	RageSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, yPos)
-end
-
-RageSelectorCloseBtn.MouseButton1Click:Connect(function()
-	RageSelectorWindow.Visible = false
-end)
 
 -- === LEFT COLUMN ===
 createSectionLabel("Direct Teleport", LeftColumn, 10)
 local PlayerInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 40), UDim2.new(0.55, 0, 0, 35), "Enter player name...")
 local TeleportBtn = createButton(LeftColumn, UDim2.new(0.62, 0, 0, 40), UDim2.new(0.15, 0, 0, 35), "TP", colors.buttonGreen)
 local DirectKeybindBtn = createButton(LeftColumn, UDim2.new(0.8, 0, 0, 40), UDim2.new(0.15, 0, 0, 35), keybinds.direct or "Key")
-local TPSelectorBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 80), UDim2.new(0.9, 0, 0, 30), "👥 Open Player Selector", colors.buttonBlue)
 
-createDivider(LeftColumn, 125)
-createSectionLabel("Arcade Teleport", LeftColumn, 135)
-local RandomBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 165), UDim2.new(0.6, 0, 0, 40), "Random Teleport", colors.buttonBlue)
-local ArcadeKeybindBtn = createButton(LeftColumn, UDim2.new(0.8, 0, 0, 165), UDim2.new(0.15, 0, 0, 40), keybinds.arcade or "Key")
+-- Встроенный селектор игроков для Direct TP
+local TPSelectorLabel = Instance.new("TextLabel")
+TPSelectorLabel.Size = UDim2.new(0.9, 0, 0, 20)
+TPSelectorLabel.Position = UDim2.new(0.05, 0, 0, 85)
+TPSelectorLabel.BackgroundTransparency = 1
+TPSelectorLabel.Text = " Players:"
+TPSelectorLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+TPSelectorLabel.Font = Enum.Font.GothamBold
+TPSelectorLabel.TextSize = 11
+TPSelectorLabel.TextXAlignment = Enum.TextXAlignment.Left
+TPSelectorLabel.ZIndex = 11
+TPSelectorLabel.Parent = LeftColumn
 
-createDivider(LeftColumn, 220)
-createSectionLabel("SilentAim", LeftColumn, 230)
-local SilentToggleBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 260), UDim2.new(0.4, 0, 0, 35), "Toggle: OFF")
-local SilentKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 260), UDim2.new(0.2, 0, 0, 35), keybinds.silent or "Key")
-local SilentShowFOVBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 260), UDim2.new(0.23, 0, 0, 35), "Show FOV: OFF")
-local SilentFOVInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 305), UDim2.new(0.9, 0, 0, 35), "Rage FOV (default: 150)", tostring(states.silentFOV))
+local TPSelectorScroll = Instance.new("ScrollingFrame")
+TPSelectorScroll.Size = UDim2.new(0.9, 0, 0, 200)
+TPSelectorScroll.Position = UDim2.new(0.05, 0, 0, 108)
+TPSelectorScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+TPSelectorScroll.ScrollBarThickness = 4
+TPSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+TPSelectorScroll.ZIndex = 11
+TPSelectorScroll.Parent = LeftColumn
+local tpSelCorner = Instance.new("UICorner")
+tpSelCorner.CornerRadius = UDim.new(0, 6)
+tpSelCorner.Parent = TPSelectorScroll
+
+local TPSelectorLayout = Instance.new("UIListLayout")
+TPSelectorLayout.Padding = UDim.new(0, 4)
+TPSelectorLayout.Parent = TPSelectorScroll
+
+local TPUpdateBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 315), UDim2.new(0.9, 0, 0, 28), "🔄 Refresh Player List", colors.buttonBlue)
 
 createDivider(LeftColumn, 355)
-createSectionLabel("Movement", LeftColumn, 365)
-local FlyBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 395), UDim2.new(0.4, 0, 0, 35), "Fly: OFF")
-local FlyKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 395), UDim2.new(0.2, 0, 0, 35), keybinds.fly or "Key")
-local FlySpeedInput = createTextBox(LeftColumn, UDim2.new(0.72, 0, 0, 395), UDim2.new(0.23, 0, 0, 35), "Fly Speed", tostring(states.flySpeed))
-local WalkSpeedInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 440), UDim2.new(0.4, 0, 0, 35), "WalkSpeed (default: 1)", tostring(states.walkSpeedValue))
-local WalkSpeedChangerBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 440), UDim2.new(0.45, 0, 0, 35), "WalkSpeed Changer: OFF")
+createSectionLabel("Arcade Teleport", LeftColumn, 365)
+local RandomBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 395), UDim2.new(0.6, 0, 0, 40), "Random Teleport", colors.buttonBlue)
+local ArcadeKeybindBtn = createButton(LeftColumn, UDim2.new(0.8, 0, 0, 395), UDim2.new(0.15, 0, 0, 40), keybinds.arcade or "Key")
 
-createDivider(LeftColumn, 490)
-createSectionLabel("RageBot", LeftColumn, 500)
-local RageToggleBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 530), UDim2.new(0.4, 0, 0, 35), "Toggle: OFF")
-local RageKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 530), UDim2.new(0.2, 0, 0, 35), keybinds.rage or "Key")
-local RageRecallKeybindBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 530), UDim2.new(0.23, 0, 0, 35), keybinds.rageRecall or "Key")
-local ArcadeRageBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 570), UDim2.new(0.4, 0, 0, 35), "Arcade: OFF")
-local RageKillBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 570), UDim2.new(0.45, 0, 0, 35), "Kill", colors.buttonRed)
-local RageSelectorBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 610), UDim2.new(0.9, 0, 0, 30), "⚔️ Open Target Selector", colors.buttonPurple)
+createDivider(LeftColumn, 450)
+createSectionLabel("SilentAim", LeftColumn, 460)
+local SilentToggleBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 490), UDim2.new(0.4, 0, 0, 35), "Toggle: OFF")
+local SilentKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 490), UDim2.new(0.2, 0, 0, 35), keybinds.silent or "Key")
+local SilentShowFOVBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 490), UDim2.new(0.23, 0, 0, 35), "Show FOV: OFF")
+local SilentFOVInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 535), UDim2.new(0.9, 0, 0, 35), "Rage FOV (default: 150)", tostring(states.silentFOV))
+
+createDivider(LeftColumn, 585)
+createSectionLabel("Movement", LeftColumn, 595)
+local FlyBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 625), UDim2.new(0.4, 0, 0, 35), "Fly: OFF")
+local FlyKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 625), UDim2.new(0.2, 0, 0, 35), keybinds.fly or "Key")
+local FlySpeedInput = createTextBox(LeftColumn, UDim2.new(0.72, 0, 0, 625), UDim2.new(0.23, 0, 0, 35), "Fly Speed", tostring(states.flySpeed))
+local WalkSpeedInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 670), UDim2.new(0.4, 0, 0, 35), "WalkSpeed (default: 1)", tostring(states.walkSpeedValue))
+local WalkSpeedChangerBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 670), UDim2.new(0.45, 0, 0, 35), "WalkSpeed Changer: OFF")
+
+createDivider(LeftColumn, 720)
+createSectionLabel("RageBot", LeftColumn, 730)
+local RageToggleBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 760), UDim2.new(0.4, 0, 0, 35), "Toggle: OFF")
+local RageKeybindBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 760), UDim2.new(0.2, 0, 0, 35), keybinds.rage or "Key")
+local RageRecallKeybindBtn = createButton(LeftColumn, UDim2.new(0.72, 0, 0, 760), UDim2.new(0.23, 0, 0, 35), keybinds.rageRecall or "Key")
+local ArcadeRageBtn = createButton(LeftColumn, UDim2.new(0.05, 0, 0, 800), UDim2.new(0.4, 0, 0, 35), "Arcade: OFF")
+local RageKillBtn = createButton(LeftColumn, UDim2.new(0.5, 0, 0, 800), UDim2.new(0.45, 0, 0, 35), "Kill", colors.buttonRed)
 
 -- Текстовые поля для таргетов (скрытые, но сохраняются для совместимости)
 for i = 1, 5 do
-	local targetInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 645 + (i-1)*40), UDim2.new(0.9, 0, 0, 35), "Target "..i.." name...", states.rageTargets[i] or "")
+	local targetInput = createTextBox(LeftColumn, UDim2.new(0.05, 0, 0, 840 + (i-1)*40), UDim2.new(0.9, 0, 0, 35), "Target "..i.." name...", states.rageTargets[i] or "")
 	targetInput.Name = "RageTarget"..i
-	targetInput.Visible = false  -- Скрываем, так как теперь есть селектор
+	targetInput.Visible = false
 end
 
 -- === MIDDLE COLUMN ===
@@ -856,34 +686,109 @@ local NotesBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 160), UDim2.ne
 local ConsoleWindowBtn = createButton(MiddleColumn, UDim2.new(0.71, 0, 0, 160), UDim2.new(0.24, 0, 0, 35), "Console")
 
 createDivider(MiddleColumn, 210)
-createSectionLabel("LegitBot", MiddleColumn, 220)
-local LegitToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 250), UDim2.new(0.3, 0, 0, 35), "Legit AimBot: OFF")
-local LegitKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 250), UDim2.new(0.15, 0, 0, 35), keybinds.legit or "Key")
-local LegitShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 250), UDim2.new(0.2, 0, 0, 35), "Show FOV: OFF")
-local LegitWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 250), UDim2.new(0.19, 0, 0, 35), "Wall: OFF")
-local LegitModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 290), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
-local LegitModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 290), UDim2.new(0.15, 0, 0, 35), keybinds.legitMode or "Key")
-local LegitHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 290), UDim2.new(0.15, 0, 0, 35), keybinds.legitHold or "Mouse2")
-local LegitTargetLockBtn = createButton(MiddleColumn, UDim2.new(0.66, 0, 0, 290), UDim2.new(0.15, 0, 0, 35), "Lock: OFF")
-local LegitTargetLockKeybindBtn = createButton(MiddleColumn, UDim2.new(0.83, 0, 0, 290), UDim2.new(0.12, 0, 0, 35), keybinds.legitTargetLock or "Key")
-local LegitTargetInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 330), UDim2.new(0.9, 0, 0, 30), "Target Lock name", states.legitTargetLockName)
-local LegitFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 365), UDim2.new(0.45, 0, 0, 35), "Legit FOV (200)", tostring(states.legitFOV))
-local LegitSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 365), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.legitSmoothness))
 
-createDivider(MiddleColumn, 415)
-createSectionLabel("Mouse Aimbot", MiddleColumn, 425)
-local MouseAimToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 455), UDim2.new(0.3, 0, 0, 35), "Toggle: OFF")
-local MouseAimKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 455), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAim or "Key")
-local MouseAimWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 455), UDim2.new(0.2, 0, 0, 35), "Wall: OFF")
-local MouseAimShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 455), UDim2.new(0.19, 0, 0, 35), "Show FOV: OFF")
-local MouseAimModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 495), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
-local MouseAimModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 495), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimMode or "Key")
-local MouseAimHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 495), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimHold or "Mouse2")
+-- Встроенный селектор игроков для RageBot
+createSectionLabel("⚔️ RageBot Targets", MiddleColumn, 220)
 
-local MouseAimHeadChanceInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 535), UDim2.new(0.45, 0, 0, 35), "Head Chance % (0-100)", tostring(states.mouseAimHeadChance))
-local MouseAimLegitmentInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 535), UDim2.new(0.43, 0, 0, 35), "Legitment (0-100)", tostring(states.mouseAimLegitment))
-local MouseAimFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 575), UDim2.new(0.45, 0, 0, 35), "MouseAim FOV (200)", tostring(states.mouseAimFOV))
-local MouseAimSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 575), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.mouseAimSmoothness))
+local RageSelectorScroll = Instance.new("ScrollingFrame")
+RageSelectorScroll.Size = UDim2.new(0.9, 0, 0, 280)
+RageSelectorScroll.Position = UDim2.new(0.05, 0, 0, 248)
+RageSelectorScroll.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+RageSelectorScroll.ScrollBarThickness = 4
+RageSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+RageSelectorScroll.ZIndex = 11
+RageSelectorScroll.Parent = MiddleColumn
+local rageSelCorner = Instance.new("UICorner")
+rageSelCorner.CornerRadius = UDim.new(0, 6)
+rageSelCorner.Parent = RageSelectorScroll
+
+local RageSelectorLayout = Instance.new("UIListLayout")
+RageSelectorLayout.Padding = UDim.new(0, 4)
+RageSelectorLayout.Parent = RageSelectorScroll
+
+local RageUpdateBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 535), UDim2.new(0.45, 0, 0, 30), "🔄 Refresh", colors.buttonBlue)
+local RageClearBtn = createButton(MiddleColumn, UDim2.new(0.5, 0, 0, 535), UDim2.new(0.45, 0, 0, 30), "🗑️ Clear All", colors.buttonRed)
+
+-- Функции обновления селекторов
+local function refreshTPSelector()
+	for _, child in ipairs(TPSelectorScroll:GetChildren()) do
+		if child:IsA("Frame") then child:Destroy() end
+	end
+	
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			createPlayerListItem(TPSelectorScroll, player, false)
+		end
+	end
+	
+	task.wait(0.05)
+	TPSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, TPSelectorLayout.AbsoluteContentSize.Y + 10)
+end
+
+local function refreshRageSelector()
+	for _, child in ipairs(RageSelectorScroll:GetChildren()) do
+		if child:IsA("Frame") then child:Destroy() end
+	end
+	
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			createPlayerListItem(RageSelectorScroll, player, true)
+		end
+	end
+	
+	task.wait(0.05)
+	RageSelectorScroll.CanvasSize = UDim2.new(0, 0, 0, RageSelectorLayout.AbsoluteContentSize.Y + 10)
+end
+
+TPUpdateBtn.MouseButton1Click:Connect(function()
+	refreshTPSelector()
+	log("🔄 TP player list updated", Color3.fromRGB(52, 152, 219))
+end)
+
+RageUpdateBtn.MouseButton1Click:Connect(function()
+	refreshRageSelector()
+	log("🔄 Rage target list updated", Color3.fromRGB(52, 152, 219))
+end)
+
+RageClearBtn.MouseButton1Click:Connect(function()
+	for i = 1, 5 do
+		states.rageTargets[i] = ""
+		local targetInput = LeftColumn:FindFirstChild("RageTarget"..i)
+		if targetInput then targetInput.Text = "" end
+	end
+	refreshRageSelector()
+	log("🗑️ All rage targets cleared", Color3.fromRGB(231, 76, 60))
+end)
+
+createDivider(MiddleColumn, 580)
+createSectionLabel("LegitBot", MiddleColumn, 590)
+local LegitToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 620), UDim2.new(0.3, 0, 0, 35), "Legit AimBot: OFF")
+local LegitKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 620), UDim2.new(0.15, 0, 0, 35), keybinds.legit or "Key")
+local LegitShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 620), UDim2.new(0.2, 0, 0, 35), "Show FOV: OFF")
+local LegitWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 620), UDim2.new(0.19, 0, 0, 35), "Wall: OFF")
+local LegitModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 660), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
+local LegitModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 660), UDim2.new(0.15, 0, 0, 35), keybinds.legitMode or "Key")
+local LegitHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 660), UDim2.new(0.15, 0, 0, 35), keybinds.legitHold or "Mouse2")
+local LegitTargetLockBtn = createButton(MiddleColumn, UDim2.new(0.66, 0, 0, 660), UDim2.new(0.15, 0, 0, 35), "Lock: OFF")
+local LegitTargetLockKeybindBtn = createButton(MiddleColumn, UDim2.new(0.83, 0, 0, 660), UDim2.new(0.12, 0, 0, 35), keybinds.legitTargetLock or "Key")
+local LegitTargetInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 700), UDim2.new(0.9, 0, 0, 30), "Target Lock name", states.legitTargetLockName)
+local LegitFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 735), UDim2.new(0.45, 0, 0, 35), "Legit FOV (200)", tostring(states.legitFOV))
+local LegitSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 735), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.legitSmoothness))
+
+createDivider(MiddleColumn, 785)
+createSectionLabel("Mouse Aimbot", MiddleColumn, 795)
+local MouseAimToggleBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 825), UDim2.new(0.3, 0, 0, 35), "Toggle: OFF")
+local MouseAimKeybindBtn = createButton(MiddleColumn, UDim2.new(0.37, 0, 0, 825), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAim or "Key")
+local MouseAimWallCheckBtn = createButton(MiddleColumn, UDim2.new(0.54, 0, 0, 825), UDim2.new(0.2, 0, 0, 35), "Wall: OFF")
+local MouseAimShowFOVBtn = createButton(MiddleColumn, UDim2.new(0.76, 0, 0, 825), UDim2.new(0.19, 0, 0, 35), "Show FOV: OFF")
+local MouseAimModeBtn = createButton(MiddleColumn, UDim2.new(0.05, 0, 0, 865), UDim2.new(0.25, 0, 0, 35), "Mode: Always")
+local MouseAimModeKeybindBtn = createButton(MiddleColumn, UDim2.new(0.32, 0, 0, 865), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimMode or "Key")
+local MouseAimHoldKeybindBtn = createButton(MiddleColumn, UDim2.new(0.49, 0, 0, 865), UDim2.new(0.15, 0, 0, 35), keybinds.mouseAimHold or "Mouse2")
+
+local MouseAimHeadChanceInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 905), UDim2.new(0.45, 0, 0, 35), "Head Chance % (0-100)", tostring(states.mouseAimHeadChance))
+local MouseAimLegitmentInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 905), UDim2.new(0.43, 0, 0, 35), "Legitment (0-100)", tostring(states.mouseAimLegitment))
+local MouseAimFOVInput = createTextBox(MiddleColumn, UDim2.new(0.05, 0, 0, 945), UDim2.new(0.45, 0, 0, 35), "MouseAim FOV (200)", tostring(states.mouseAimFOV))
+local MouseAimSmoothInput = createTextBox(MiddleColumn, UDim2.new(0.52, 0, 0, 945), UDim2.new(0.43, 0, 0, 35), "Smoothness (0=instant)", tostring(states.mouseAimSmoothness))
 
 -- === RIGHT COLUMN ===
 createSectionLabel("Information", RightColumn, 10)
@@ -896,7 +801,7 @@ InfoContent.Font = Enum.Font.Gotham
 InfoContent.TextSize = 13
 InfoContent.TextXAlignment = Enum.TextXAlignment.Left
 InfoContent.TextYAlignment = Enum.TextYAlignment.Top
-InfoContent.Text = "Welcome "..LocalPlayer.DisplayName.."!\nAlso Known As "..LocalPlayer.Name..".\n\nVersion: v2.3\nPublished by Zalore Hub."
+InfoContent.Text = "Welcome "..LocalPlayer.DisplayName.."!\nAlso Known As "..LocalPlayer.Name..".\n\nVersion: v2.4\nPublished by Zalore Hub."
 InfoContent.ZIndex = 11
 InfoContent.Parent = RightColumn
 
@@ -957,7 +862,7 @@ local function teleportBehindTarget(targetPlayer)
 		myRoot.CFrame = tRoot.CFrame
 		Camera.CFrame = tRoot.CFrame
 	end)
-	if not success then log("❌ TP: "..tostring(err), Color3.fromRGB(231, 76, 60)) end
+	if not success then log(" TP: "..tostring(err), Color3.fromRGB(231, 76, 60)) end
 end
 
 local function performDirectTeleport()
@@ -980,17 +885,16 @@ local function performArcadeTeleport()
 	end
 	if #pl == 0 then log("❌ No players", Color3.fromRGB(231, 76, 60)) return end
 	local t = pl[math.random(1, #pl)]
-	log(" "..t.Name, Color3.fromRGB(52, 152, 219))
+	log("🎲 "..t.Name, Color3.fromRGB(52, 152, 219))
 	teleportBehindTarget(t)
 end
 
--- === ESP (ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ) ===
+-- === ESP ===
 local espHighlights = {}
 local espBillboards = {}
 
 local function createESPBillboard(player)
 	if espBillboards[player] then 
-		-- Если уже существует, просто обновим ссылки
 		return espBillboards[player]
 	end
 	
@@ -1000,7 +904,6 @@ local function createESPBillboard(player)
 	local head = character:WaitForChild("Head", 5)
 	if not head then return nil end
 	
-	-- Удаляем старые если есть
 	for _, old in ipairs(head:GetChildren()) do
 		if old.Name == "NymiusESP" then old:Destroy() end
 	end
@@ -1013,7 +916,6 @@ local function createESPBillboard(player)
 	billboard.Enabled = true
 	billboard.Parent = head
 	
-	-- Ник игрока
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Name = "NameLabel"
 	nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
@@ -1028,7 +930,6 @@ local function createESPBillboard(player)
 	nameLabel.Visible = states.espShowNames
 	nameLabel.Parent = billboard
 	
-	-- HP
 	local hpLabel = Instance.new("TextLabel")
 	hpLabel.Name = "HPLabel"
 	hpLabel.Size = UDim2.new(1, 0, 0.5, 0)
@@ -1068,7 +969,6 @@ local function updateESPBillboards()
 				local maxHP = 150
 				data.hpLabel.Text = "HP: " .. currentHP .. "/" .. maxHP
 				
-				-- Цвет HP
 				local hpPercent = currentHP / maxHP
 				if hpPercent > 0.6 then
 					data.hpLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -1078,7 +978,6 @@ local function updateESPBillboards()
 					data.hpLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
 				end
 				
-				-- Обновляем видимость
 				if data.nameLabel then
 					data.nameLabel.Visible = states.espShowNames
 				end
@@ -1086,13 +985,10 @@ local function updateESPBillboards()
 					data.hpLabel.Visible = states.espShowHP
 				end
 				
-				-- Billboard виден если ESP включен И хотя бы один из режимов показывания включен
 				data.billboard.Enabled = states.espEnabled and (states.espShowNames or states.espShowHP)
 			end
 		else
-			-- Игрок умер или голова удалена - помечаем для пересоздания
 			if player.Character then
-				-- Ждём новый character
 				task.spawn(function()
 					player.CharacterAdded:Wait()
 					task.wait(1)
@@ -1109,7 +1005,6 @@ end
 local function addESP(p)
 	if p == LocalPlayer or not p.Character then return end
 	
-	-- Highlight
 	if espHighlights[p] then espHighlights[p]:Destroy() end
 	local h = Instance.new("Highlight")
 	h.Adornee = p.Character
@@ -1120,7 +1015,6 @@ local function addESP(p)
 	h.Parent = p.Character
 	espHighlights[p] = h
 	
-	-- Billboard
 	createESPBillboard(p)
 end
 
@@ -1185,7 +1079,6 @@ end)
 
 Players.PlayerRemoving:Connect(remESP)
 
--- Обновление ESP каждый кадр
 RunService.RenderStepped:Connect(function()
 	if states.espEnabled then
 		updateESPBillboards()
@@ -1314,7 +1207,7 @@ local function scanForStaff()
 		StaffStatusLabel.Text = "✅ No one found"
 		StaffStatusLabel.TextColor3 = Color3.fromRGB(46, 204, 113)
 	else
-		StaffStatusLabel.Text = "️ Staff:\n"..table.concat(detected, "\n")
+		StaffStatusLabel.Text = "⚠️ Staff:\n"..table.concat(detected, "\n")
 		StaffStatusLabel.TextColor3 = Color3.fromRGB(231, 76, 60)
 		log("⚠️ STAFF: "..table.concat(detected, ", "), Color3.fromRGB(231, 76, 60))
 	end
@@ -1344,7 +1237,7 @@ LoadConfigBtn.MouseButton1Click:Connect(function()
 	local code = ConfigCodeInput.Text:gsub("%s+", "")
 	if code == "" then log("⚠️ Empty", Color3.fromRGB(241, 196, 15)) return end
 	local ok, err = loadConfigFromCode(code)
-	if ok then log("✅ Loaded", Color3.fromRGB(46, 204, 113)) else log("❌ "..tostring(err), Color3.fromRGB(231, 76, 60)) end
+	if ok then log("✅ Loaded", Color3.fromRGB(46, 204, 113)) else log(" "..tostring(err), Color3.fromRGB(231, 76, 60)) end
 end)
 CopyCodeBtn.MouseButton1Click:Connect(function()
 	local code = GeneratedCodeInput.Text
@@ -1564,21 +1457,6 @@ end)
 TeleportBtn.MouseButton1Click:Connect(performDirectTeleport)
 RandomBtn.MouseButton1Click:Connect(performArcadeTeleport)
 
--- Кнопки селекторов
-TPSelectorBtn.MouseButton1Click:Connect(function()
-	TPSelectorWindow.Visible = not TPSelectorWindow.Visible
-	if TPSelectorWindow.Visible then
-		refreshTPSelector()
-	end
-end)
-
-RageSelectorBtn.MouseButton1Click:Connect(function()
-	RageSelectorWindow.Visible = not RageSelectorWindow.Visible
-	if RageSelectorWindow.Visible then
-		refreshRageSelector()
-	end
-end)
-
 MenuKillBtn.MouseButton1Click:Connect(function() log("💀 Menu killed", Color3.fromRGB(231, 76, 60)) ScreenGui:Destroy() end)
 
 for i = 1, 5 do
@@ -1592,14 +1470,14 @@ ArcadeRageBtn.MouseButton1Click:Connect(function()
 	states.arcadeRageEnabled = not states.arcadeRageEnabled
 	ArcadeRageBtn.Text = "Arcade: "..(states.arcadeRageEnabled and "ON" or "OFF")
 	ArcadeRageBtn.BackgroundColor3 = states.arcadeRageEnabled and colors.buttonGreen or colors.buttonDefault
-	log(" Arcade Rage "..(states.arcadeRageEnabled and "enabled" or "disabled"), states.arcadeRageEnabled and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60))
+	log("🎲 Arcade Rage "..(states.arcadeRageEnabled and "enabled" or "disabled"), states.arcadeRageEnabled and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(231, 76, 60))
 end)
 
 -- === ЗАГРУЗКА МОДУЛЯ ===
 if loadAimbotModule() then
 	log("✅ AimbotModule loaded from GitHub", Color3.fromRGB(46, 204, 113))
 else
-	log("⚠️ AimbotModule failed to load", Color3.fromRGB(241, 196, 15))
+	log("️ AimbotModule failed to load", Color3.fromRGB(241, 196, 15))
 end
 
 -- === UI UPDATE ===
@@ -1637,8 +1515,28 @@ function updateAllKeybindButtons()
 end
 
 -- === СТАРТ ===
-log("🚀 Nymius Rivals v2.3 loaded!", Color3.fromRGB(46, 204, 113))
+-- Первоначальная загрузка списков игроков
+task.spawn(function()
+	task.wait(2)
+	refreshTPSelector()
+	refreshRageSelector()
+end)
+
+-- Автообновление при входе/выходе игроков
+Players.PlayerAdded:Connect(function()
+	task.wait(1)
+	refreshTPSelector()
+	refreshRageSelector()
+end)
+
+Players.PlayerRemoving:Connect(function()
+	task.wait(0.5)
+	refreshTPSelector()
+	refreshRageSelector()
+end)
+
+log("🚀 Nymius Rivals v2.4 loaded!", Color3.fromRGB(46, 204, 113))
 log("💡 Welcome "..LocalPlayer.DisplayName.."!", Color3.fromRGB(180, 180, 180))
 log("💡 Toggle: "..keybinds.toggle, Color3.fromRGB(180, 180, 180))
 log("💡 Published by Zalore Hub", Color3.fromRGB(180, 180, 180))
-print("✅ Nymius Rivals v2.3 loaded!")
+print("✅ Nymius Rivals v2.4 loaded!")
