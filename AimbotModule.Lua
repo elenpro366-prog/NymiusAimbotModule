@@ -1,4 +1,4 @@
--- Nymius Rivals v2.2 - AimbotModule
+-- Nymius Rivals v2.1 - AimbotModule (ULTRA SMOOTH & HUMAN-LIKE)
 local shared = getgenv().NymiusShared
 if not shared then
 	warn("❌ NymiusShared not found")
@@ -20,7 +20,9 @@ local hasHookmetamethod = shared.hasHookmetamethod
 local hasDrawing = shared.hasDrawing
 local hasMouseMoveRel = shared.hasMouseMoveRel
 
--- === SILENT AIM ===
+-- ==========================================
+-- SILENT AIM (Без изменений)
+-- ==========================================
 local silentHookActive = false
 local oldNamecall = nil
 
@@ -90,7 +92,9 @@ ui.SilentFOVInput.FocusLost:Connect(function()
 	if v and v > 0 then states.silentFOV = v end
 end)
 
--- === LEGITBOT ===
+-- ==========================================
+-- LEGITBOT (Без изменений)
+-- ==========================================
 local function findLegitTarget()
 	local myChar = LocalPlayer.Character
 	if not myChar or not myChar:FindFirstChild("Head") then return nil end
@@ -199,7 +203,9 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- === MOUSE AIMBOT ===
+-- ==========================================
+-- MOUSE AIMBOT (ULTRA SMOOTH & HUMAN-LIKE)
+-- ==========================================
 shared.mouseAimHolding = false
 
 local function findMouseAimTarget()
@@ -211,6 +217,7 @@ local function findMouseAimTarget()
 	
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p ~= LocalPlayer and p.Character then
+			-- HEAD CHANCE LOGIC
 			local roll = math.random(1, 100)
 			local targetPartName = (roll <= states.mouseAimHeadChance) and "Head" or "HumanoidRootPart"
 			local tp = p.Character:FindFirstChild(targetPartName) or p.Character:FindFirstChild("Head")
@@ -283,57 +290,73 @@ ui.MouseAimSmoothInput.FocusLost:Connect(function()
 	if v and v >= 0 then states.mouseAimSmoothness = v end
 end)
 
+-- ГЛАВНЫЙ ЦИКЛ АИМБОТА (ОПТИМИЗИРОВАННЫЙ)
 RunService.RenderStepped:Connect(function()
 	if not states.mouseAimEnabled then return end
 	if not hasMouseMoveRel then return end
+	
 	local sa = states.mouseAimMode == "always" or (states.mouseAimMode == "hold" and shared.mouseAimHolding)
-	if sa then
-		local t = findMouseAimTarget()
-		if t then
-			local sp, os = Camera:WorldToViewportPoint(t.pos)
-			if os then
-				local sc = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-				local rawDelta = Vector2.new(sp.X, sp.Y) - sc
-				local distance = rawDelta.Magnitude
-				
-				local smoothness = math.clamp(states.mouseAimSmoothness, 0, 1)
-				local moveFactor = 1
-				
-				if smoothness > 0 then
-					local baseSmooth = 1 - (smoothness * 0.85)
-					local distEasing = math.clamp(distance / 400, 0.15, 1)
-					moveFactor = baseSmooth * distEasing
-				end
-				
-				local smoothedDelta = rawDelta * moveFactor
-				
-				local legitment = math.clamp(states.mouseAimLegitment, 0, 100)
-				if legitment > 0 then
-					local maxPixelScatter = (legitment / 100) * 18
-					local scatterX = math.random() * maxPixelScatter * 2 - maxPixelScatter
-					local scatterY = math.random() * maxPixelScatter * 2 - maxPixelScatter
-					smoothedDelta = smoothedDelta + Vector2.new(scatterX, scatterY)
-				end
-				
-				if smoothedDelta.Magnitude < 2.5 then return end
-				
-				local maxSpeed = 40
-				if smoothedDelta.Magnitude > maxSpeed then
-					smoothedDelta = smoothedDelta.Unit * maxSpeed
-				end
-				
-				pcall(function()
-					mousemoverel(smoothedDelta.X, smoothedDelta.Y)
-				end)
-			end
+	if not sa then return end
+	
+	local t = findMouseAimTarget()
+	if t then
+		local sp, os = Camera:WorldToViewportPoint(t.pos)
+		if not os then return end
+		
+		local sc = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+		local rawDelta = Vector2.new(sp.X, sp.Y) - sc
+		local distance = rawDelta.Magnitude
+		
+		-- 1. ДИНАМИЧЕСКОЕ СГЛАЖИВАНИЕ (Человекоподобное)
+		-- Когда цель далеко, аимбот движется быстрее. Когда близко - замедляется для точности.
+		local smoothness = math.clamp(states.mouseAimSmoothness, 0, 1)
+		local moveFactor = 1
+		
+		if smoothness > 0 then
+			local baseSmooth = 1 - (smoothness * 0.85)
+			-- Ускорение при большом расстоянии (Fitts's Law)
+			local distEasing = math.clamp(distance / 400, 0.15, 1) 
+			moveFactor = baseSmooth * distEasing
 		end
+		
+		local smoothedDelta = rawDelta * moveFactor
+		
+		-- 2. LEGITMENT (РАЗБРОС)
+		-- Применяем случайное смещение к 2D-движению мыши, а не к 3D-позиции (убирает дрожание)
+		local legitment = math.clamp(states.mouseAimLegitment, 0, 100)
+		if legitment > 0 then
+			-- Максимальный разброс в пикселях (100% = ~15-20 пикселей)
+			local maxPixelScatter = (legitment / 100) * 18
+			local scatterX = math.random() * maxPixelScatter * 2 - maxPixelScatter
+			local scatterY = math.random() * maxPixelScatter * 2 - maxPixelScatter
+			smoothedDelta = smoothedDelta + Vector2.new(scatterX, scatterY)
+		end
+		
+		-- 3. МЕРТВАЯ ЗОНА (Deadzone)
+		-- Если мы уже практически на цели, не двигаем мышь, чтобы избежать микро-подергиваний
+		if smoothedDelta.Magnitude < 2.5 then
+			return
+		end
+		
+		-- 4. ОГРАНИЧЕНИЕ МАКСИМАЛЬНОЙ СКОРОСТИ (Speed Clamp)
+		-- Запрещаем мыши "телепортироваться" на другой конец экрана за 1 кадр
+		local maxSpeed = 40 -- Можно уменьшить до 25-30 для еще большей плавности
+		if smoothedDelta.Magnitude > maxSpeed then
+			smoothedDelta = smoothedDelta.Unit * maxSpeed
+		end
+		
+		-- 5. ВЫПОЛНЕНИЕ ДВИЖЕНИЯ
+		pcall(function()
+			mousemoverel(smoothedDelta.X, smoothedDelta.Y)
+		end)
 	end
 end)
 
--- === RAGE BOT (ОБНОВЛЕННЫЙ) ===
+-- ==========================================
+-- RAGE BOT (Без изменений)
+-- ==========================================
 local safePositionCFrame = nil
 local isAtSafePosition = false
-local currentArcadeTarget = nil
 
 local function teleportToSafe()
 	local myChar = LocalPlayer.Character
@@ -381,34 +404,18 @@ local function teleportToPlayer(targetPlayer)
 end
 
 local function findRageTarget()
-	-- ARCADE MODE: без лимита расстояния, таргетим одного пока не умрет
 	if states.arcadeRageEnabled then
-		if currentArcadeTarget and currentArcadeTarget.Character then
-			local humanoid = currentArcadeTarget.Character:FindFirstChild("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				return currentArcadeTarget
-			end
-		end
-		
-		currentArcadeTarget = nil
 		local alivePlayers = {}
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
 				local h = p.Character:FindFirstChild("Humanoid")
-				if h and h.Health > 0 then
-					table.insert(alivePlayers, p)
-				end
+				if h and h.Health > 0 then table.insert(alivePlayers, p) end
 			end
 		end
-		if #alivePlayers > 0 then
-			currentArcadeTarget = alivePlayers[math.random(1, #alivePlayers)]
-			log(" New arcade target: " .. currentArcadeTarget.Name, Color3.fromRGB(52, 152, 219))
-			return currentArcadeTarget
-		end
+		if #alivePlayers > 0 then return alivePlayers[math.random(1, #alivePlayers)] end
 		return nil
 	end
 	
-	-- LOCK MODE
 	local aliveTargets = {}
 	for _, targetName in ipairs(states.rageTargets) do
 		if targetName ~= "" then
@@ -441,7 +448,7 @@ local function performRageKill()
 		return
 	end
 	
-	log("⚔️ Attacking " .. target.Name, Color3.fromRGB(52, 152, 219))
+	log("🎯 Teleported to "..target.Name, Color3.fromRGB(52, 152, 219))
 	
 	if hasMouseMoveRel then
 		pcall(function() 
@@ -453,19 +460,8 @@ local function performRageKill()
 	
 	task.delay(0.5, function()
 		teleportToSafe()
+		log("🛡️ Returned to safe position", Color3.fromRGB(52, 152, 219))
 	end)
-end
-
--- НОВАЯ ФУНКЦИЯ: Отзыв RageBot
-local function recallRage()
-	if not states.rageEnabled then
-		log("⚠️ RageBot not enabled", Color3.fromRGB(241, 196, 15))
-		return
-	end
-	
-	teleportToSafe()
-	currentArcadeTarget = nil
-	log("🛡️ RageBot recalled to safe position", Color3.fromRGB(52, 152, 219))
 end
 
 local function toggleRage()
@@ -479,7 +475,7 @@ local function toggleRage()
 
 	if states.rageEnabled then
 		teleportToSafe()
-		log("✅ RageBot enabled", Color3.fromRGB(46, 204, 113))
+		log("✅ RageBot enabled - teleported to safe position", Color3.fromRGB(46, 204, 113))
 	else
 		if myRoot and humanoid and isAtSafePosition then
 			myRoot.Anchored = false
@@ -488,9 +484,8 @@ local function toggleRage()
 				humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
 				humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
 			end)
-			log("❌ RageBot disabled", Color3.fromRGB(231, 76, 60))
+			log("❌ RageBot disabled - protections removed", Color3.fromRGB(231, 76, 60))
 		end
-		currentArcadeTarget = nil
 		isAtSafePosition = false
 	end
 end
@@ -508,7 +503,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	end
 end)
 
--- === FOV CIRCLES ===
+-- ==========================================
+-- FOV CIRCLES
+-- ==========================================
 local silentFOVCircle, legitFOVCircle, mouseAimFOVCircle = nil, nil, nil
 
 if hasDrawing then
@@ -549,12 +546,13 @@ RunService.RenderStepped:Connect(function()
 	if mouseAimFOVCircle then pcall(function() mouseAimFOVCircle.Position = center mouseAimFOVCircle.Radius = states.mouseAimFOV mouseAimFOVCircle.Visible = states.mouseAimShowFOV end) end
 end)
 
--- === РЕГИСТРАЦИЯ КЕЙБИНДОВ ===
+-- ==========================================
+-- РЕГИСТРАЦИЯ КЕЙБИНДОВ
+-- ==========================================
 shared.keybindActions.silent = toggleSilent
 shared.keybindActions.legit = toggleLegit
 shared.keybindActions.mouseAim = toggleMouseAim
 shared.keybindActions.rage = toggleRage
-shared.keybindActions.rageRecall = recallRage
 
 shared.keybindActions.legitMode = function()
 	states.legitMode = states.legitMode == "always" and "hold" or "always"
@@ -572,7 +570,9 @@ shared.keybindActions.mouseAimMode = function()
 	ui.MouseAimModeBtn.Text = "Mode: "..(states.mouseAimMode == "always" and "Always" or "Hold")
 end
 
--- === UI UPDATE ===
+-- ==========================================
+-- UI UPDATE
+-- ==========================================
 function updateAllUIFromStates()
 	ui.SilentToggleBtn.Text = "Toggle: "..(states.silentEnabled and "ON" or "OFF")
 	ui.SilentToggleBtn.BackgroundColor3 = states.silentEnabled and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
@@ -607,7 +607,6 @@ function updateAllUIFromStates()
 	
 	ui.RageToggleBtn.Text = "Toggle: "..(states.rageEnabled and "ON" or "OFF")
 	ui.RageToggleBtn.BackgroundColor3 = states.rageEnabled and Color3.fromRGB(46, 204, 113) or colors.buttonDefault
-	ui.RageRecallKeybindBtn.Text = keybinds.rageRecall or "Key"
 end
 
 function updateAllKeybindButtons()
@@ -620,7 +619,6 @@ function updateAllKeybindButtons()
 	ui.MouseAimModeKeybindBtn.Text = keybinds.mouseAimMode or "Key"
 	ui.MouseAimHoldKeybindBtn.Text = keybinds.mouseAimHold or "Mouse2"
 	ui.RageKeybindBtn.Text = keybinds.rage or "Key"
-	ui.RageRecallKeybindBtn.Text = keybinds.rageRecall or "Key"
 end
 
-print("✅ AimbotModule v2.2 loaded!")
+print("✅ AimbotModule v2.1 (Smooth) loaded!")
